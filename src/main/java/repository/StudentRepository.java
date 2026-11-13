@@ -1,42 +1,80 @@
+
 package com.example.studentmanagement.repository;
+
 import com.example.studentmanagement.model.Student;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
-import com.example.studentmanagement.model.Student;
+
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
-import org.springframework.jdbc.core.RowMapper;
+
 @Repository
-
 public class StudentRepository {
-    private final JdbcTemplate jdbcTemplate;
 
-    public StudentRepository(JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
+    private final DataSource dataSource;
+
+
+    public StudentRepository(DataSource dataSource) {
+        this.dataSource = dataSource;
     }
+
+
     public void saveStudent(Student student) {
+
         String sql = "INSERT INTO students (full_name, age, email) VALUES (?, ?, ?)";
 
         String fullName = student.getFirstName() + " " + student.getLastName();
 
-        jdbcTemplate.update(sql, fullName, student.getAge(), student.getEmail());
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setString(1, fullName);
+            statement.setInt(2, student.getAge());
+            statement.setString(3, student.getEmail());
+
+            statement.executeUpdate();
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Error saving student", e);
+        }
     }
+
 
     public List<Student> getAllStudents() {
+
+        List<Student> students = new ArrayList<>();
+
         String sql = "SELECT * FROM students";
 
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            Student student = new Student();
-            student.setId(rs.getInt("id"));
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql);
+             ResultSet resultSet = statement.executeQuery()) {
 
-            String[] names = rs.getString("full_name").split(" ", 2);
-            student.setFirstName(names[0]);
-            student.setLastName(names.length > 1 ? names[1] : "");
+            while (resultSet.next()) {
 
-            student.setAge(rs.getInt("age"));
-            student.setEmail(rs.getString("email"));
+                Student student = new Student();
 
-            return student;
-        });
+                student.setId(resultSet.getInt("id"));
+
+                String[] names = resultSet.getString("full_name").split(" ", 2);
+
+                student.setFirstName(names[0]);
+                student.setLastName(names.length > 1 ? names[1] : "");
+
+                student.setAge(resultSet.getInt("age"));
+                student.setEmail(resultSet.getString("email"));
+
+                students.add(student);
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Error retrieving students", e);
+        }
+
+        return students;
     }
-
 }

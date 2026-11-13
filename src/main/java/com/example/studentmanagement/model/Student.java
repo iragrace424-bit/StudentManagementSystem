@@ -1,17 +1,29 @@
+
 package com.example.studentmanagement.model;
+
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 
 public class Student {
 
     private int id;
+
+    @NotBlank(message = "First name is required")
     private String firstName;
+
+    @NotBlank(message = "Last name is required")
     private String lastName;
+
+    @NotBlank(message = "Email is required")
+    @Email(message = "Enter a valid email address")
     private String email;
+
+    @Min(value = 19, message = "Student must be above 18 years old")
     private int age;
 
-    // Empty constructor
     public Student() {
     }
-
 
     public Student(String firstName, String lastName, String email, int age) {
         this.firstName = firstName;
@@ -19,8 +31,6 @@ public class Student {
         this.email = email;
         this.age = age;
     }
-
-    // Getters and Setters
 
     public int getId() {
         return id;
